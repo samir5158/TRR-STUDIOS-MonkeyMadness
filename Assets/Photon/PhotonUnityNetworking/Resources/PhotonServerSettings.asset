@@ -48,6 +48,8 @@ MonoBehaviour:
   - NetworkDrop
   - NetworkPickUp
   - RPC_Success
+  - RPC_RequestSeatEntry
+  - RPC_RequestSeatExit
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 0
