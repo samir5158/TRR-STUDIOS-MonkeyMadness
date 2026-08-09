@@ -18,34 +18,43 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
     }
 
     [System.Serializable]
-    public class WheelPair
+    public class AssignedWheel
     {
-        public string name = "Wheel Pair";
-        [Tooltip("Ziehe hier dein 3D-Reifen Modell rein.")]
+        public string name;
+        [Tooltip("Das 3D-Reifenmesh (Hub1-Hub4)")]
         public Transform visualMesh;
+        [Tooltip("Der Collider, den du aus der Hierarchy hier reingezogen hast")]
+        public Collider wheelCollider;
         public bool isMotorWheel = false;
         public bool isSteerWheel = false;
-
-        [HideInInspector] public WheelCollider generatedCollider;
     }
 
     [Header("🚗 Fahrzeug-Typ & Profil")]
     [SerializeField] private VehiclePreset vehicleType = VehiclePreset.TwoSeater;
 
     [Header("⚡ Performance & Physik")]
-    [SerializeField] private float motorTorque = 1800f;
-    [SerializeField] private float brakeTorque = 3000f;
-    [SerializeField] private float maxWheelSteerAngle = 35f;
-    [SerializeField] private Vector3 centerOfMassOffset = new Vector3(0f, -0.5f, 0f);
+    [SerializeField] private float accelerationPower = 2500f;
+    [SerializeField] private float brakePower = 4000f;
+    [SerializeField] private float maxSteerAngle = 35f;
+    [SerializeField] private Vector3 centerOfMassOffset = new Vector3(0f, -0.8f, 0f);
 
     [Header("🪑 Sitze & Türen")]
-    [Tooltip("Sitz an Index 0 ist der Fahrersitz.")]
     [SerializeField] private List<Transform> seats = new List<Transform>();
     [SerializeField] private List<TriggerZone> entryDoors = new List<TriggerZone>();
     [SerializeField] private VRSteeringWheel steeringWheel;
 
-    [Header("🛞 Räder-Konfiguration")]
-    [SerializeField] private List<WheelPair> wheels = new List<WheelPair>();
+    [Header("🎯 4 COLLIDER AUS DER HIERARCHY HIER REINZIEHEN")]
+    [Tooltip("Ziehe hier deinen Collider für Vorne Links rein")]
+    [SerializeField] private Collider frontLeftCollider;
+    [Tooltip("Ziehe hier deinen Collider für Vorne Rechts rein")]
+    [SerializeField] private Collider frontRightCollider;
+    [Tooltip("Ziehe hier deinen Collider für Hinten Links rein")]
+    [SerializeField] private Collider rearLeftCollider;
+    [Tooltip("Ziehe hier deinen Collider für Hinten Rechts rein")]
+    [SerializeField] private Collider rearRightCollider;
+
+    [Header("🛞 Automatisch Verknüpfte Räder")]
+    [SerializeField] private List<AssignedWheel> wheels = new List<AssignedWheel>();
 
     // Zustände & Referenzen
     private bool isDriving = false;
@@ -53,9 +62,8 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
     private GameObject playerRig;
     private Rigidbody carRb;
     private Transform currentSeat;
-    private int currentSeatIndex = -1;
 
-    // Synchronisations-Variablen für Remote Clients
+    // Synchronisation
     private Vector3 networkPosition;
     private Quaternion networkRotation;
     private float networkSteerAngle;
@@ -64,14 +72,12 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
     {
         carRb = GetComponent<Rigidbody>();
 
-        // Rigidbody-Physik absichern
-        carRb.mass = 1200f;
+        carRb.mass = 2000f;
         carRb.interpolation = RigidbodyInterpolation.Interpolate;
         carRb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
         ConfigureVehiclePreset();
-        SetupWheelCollidersAutomatically();
-        RunSystemCheck();
+        SetupAndAdjustInspectorColliders();
     }
 
     private void Start()
@@ -83,108 +89,104 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
 
         networkPosition = transform.position;
         networkRotation = transform.rotation;
-
-        StartCoroutine(RoutineWheelStatusCheck());
     }
 
     private void Update()
     {
-        // Lokale Eingaben für Ein-/Ausstieg verarbeiten
         HandleCarEntryExit();
 
-        // Wenn dieser Client der Besitzer/Fahrer ist, Physik & Steuerung berechnen
         if (photonView.IsMine && isDriving)
         {
             Drive();
         }
         else if (!photonView.IsMine)
         {
-            // Netzwerk-Interpolation für Nicht-Besitzer
             transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
             transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
-
-            // Rad-Visuals auf Remote-Clients mit synchronisiertem Lenkwinkel aktualisieren
-            ApplyRemoteWheelVisuals();
         }
     }
 
     private void LateUpdate()
     {
-        // Sitzposition lokal synchron halten
         if (isDriving || isPassenger)
         {
             KeepPlayerInSeat();
         }
     }
 
-    private void OnValidate()
+    /// <summary>
+    /// Nimmt die 4 manuell reingezogenen Collider, passt sie an die 3D-Meshes an und schaltet sie aktiv.
+    /// </summary>
+    private void SetupAndAdjustInspectorColliders()
     {
-        ConfigureVehiclePreset();
-    }
+        Transform reifenFolder = transform.Find("REIFEN");
+        if (reifenFolder == null) reifenFolder = transform;
 
-    #region Fahrzeug-Mechanik & Setup
+        Transform hub4 = reifenFolder.Find("Hub4"); // Vorne Links
+        Transform hub3 = reifenFolder.Find("Hub3"); // Vorne Rechts
+        Transform hub2 = reifenFolder.Find("Hub2"); // Hinten Links
+        Transform hub1 = reifenFolder.Find("Hub1"); // Hinten Rechts
 
-    private void SetupWheelCollidersAutomatically()
-    {
-        Transform oldHolder = transform.Find("Generated_WheelColliders");
-        if (oldHolder != null)
+        wheels.Clear();
+
+        // Vorne Links (Hub4)
+        if (frontLeftCollider != null && hub4 != null)
         {
-            if (Application.isPlaying) Destroy(oldHolder.gameObject);
-            else DestroyImmediate(oldHolder.gameObject);
+            AdjustColliderToMesh(frontLeftCollider, hub4);
+            wheels.Add(new AssignedWheel { name = "Vorne Links (Hub4)", visualMesh = hub4, wheelCollider = frontLeftCollider, isMotorWheel = true, isSteerWheel = true });
         }
 
-        GameObject colliderHolder = new GameObject("Generated_WheelColliders");
-        colliderHolder.transform.SetParent(this.transform, false);
-
-        foreach (WheelPair wheel in wheels)
+        // Vorne Rechts (Hub3)
+        if (frontRightCollider != null && hub3 != null)
         {
-            if (wheel.visualMesh == null)
+            AdjustColliderToMesh(frontRightCollider, hub3);
+            wheels.Add(new AssignedWheel { name = "Vorne Rechts (Hub3)", visualMesh = hub3, wheelCollider = frontRightCollider, isMotorWheel = true, isSteerWheel = true });
+        }
+
+        // Hinten Links (Hub2)
+        if (rearLeftCollider != null && hub2 != null)
+        {
+            AdjustColliderToMesh(rearLeftCollider, hub2);
+            wheels.Add(new AssignedWheel { name = "Hinten Links (Hub2)", visualMesh = hub2, wheelCollider = rearLeftCollider, isMotorWheel = true, isSteerWheel = false });
+        }
+
+        // Hinten Rechts (Hub1)
+        if (rearRightCollider != null && hub1 != null)
+        {
+            AdjustColliderToMesh(rearRightCollider, hub1);
+            wheels.Add(new AssignedWheel { name = "Hinten Rechts (Hub1)", visualMesh = hub1, wheelCollider = rearRightCollider, isMotorWheel = true, isSteerWheel = false });
+        }
+
+        Debug.Log("<color=#00FF00> BESTÄTIGUNG: Alle 4 Reingezogenen Collider wurden automatisch an die Hub-Meshes angepasst!</color>");
+    }
+
+    private void AdjustColliderToMesh(Collider col, Transform targetMesh)
+    {
+        // Position und Rotation exakt an den Reifen angleichen
+        col.transform.position = targetMesh.position;
+        col.transform.rotation = targetMesh.rotation;
+
+        // Falls es ein SphereCollider ist, den Radius anhand des Meshes automatisch skalieren
+        if (col is SphereCollider sphereCol)
+        {
+            Renderer meshRenderer = targetMesh.GetComponent<Renderer>();
+            if (meshRenderer != null)
             {
-                Debug.LogError($"[VRGorillaCar] ❌ Reifen-Mesh bei '{wheel.name}' fehlt!");
-                continue;
+                sphereCol.radius = meshRenderer.bounds.extents.y / targetMesh.lossyScale.y;
             }
+        }
 
-            Collider meshCol = wheel.visualMesh.GetComponent<Collider>();
-            if (meshCol != null)
+        // Physik-Material NUR zuweisen, wenn es KEIN WheelCollider ist
+        if (!(col is WheelCollider))
+        {
+            PhysicsMaterial mat = new PhysicsMaterial("WheelGrip")
             {
-                if (Application.isPlaying) Destroy(meshCol);
-                else DestroyImmediate(meshCol);
-            }
-
-            GameObject colGo = new GameObject($"Col_{wheel.visualMesh.name}");
-            colGo.transform.SetParent(colliderHolder.transform, false);
-            colGo.transform.position = wheel.visualMesh.position;
-            colGo.transform.rotation = this.transform.rotation;
-
-            WheelCollider wheelCol = colGo.AddComponent<WheelCollider>();
-
-            float finalRadius = 0.35f;
-            Renderer meshRenderer = wheel.visualMesh.GetComponent<Renderer>();
-            if (meshRenderer != null && meshRenderer.bounds.extents.y > 0.05f)
-            {
-                finalRadius = meshRenderer.bounds.extents.y;
-            }
-
-            wheelCol.radius = finalRadius;
-            wheelCol.suspensionDistance = 0.15f;
-            wheelCol.mass = 20f;
-            wheelCol.center = Vector3.zero;
-
-            JointSpring spring = wheelCol.suspensionSpring;
-            spring.spring = 35000f;
-            spring.damper = 4500f;
-            spring.targetPosition = 0.5f;
-            wheelCol.suspensionSpring = spring;
-
-            WheelFrictionCurve fFriction = wheelCol.forwardFriction;
-            fFriction.stiffness = 2f;
-            wheelCol.forwardFriction = fFriction;
-
-            WheelFrictionCurve sFriction = wheelCol.sidewaysFriction;
-            sFriction.stiffness = 2f;
-            wheelCol.sidewaysFriction = sFriction;
-
-            wheel.generatedCollider = wheelCol;
+                dynamicFriction = 1.2f,
+                staticFriction = 1.2f,
+                bounciness = 0.0f,
+                frictionCombine = PhysicsMaterialCombine.Maximum
+            };
+            col.material = mat;
         }
     }
 
@@ -194,53 +196,33 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
         device.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 stickInput);
 
         float forwardInput = stickInput.y;
-        float appliedTorque = forwardInput * motorTorque;
-        float appliedBrake = (Mathf.Abs(forwardInput) < 0.05f) ? brakeTorque : 0f;
 
-        float steerAngle = 0f;
+        if (Mathf.Abs(forwardInput) > 0.1f)
+        {
+            Vector3 forceDirection = transform.forward * forwardInput * accelerationPower;
+            carRb.AddForce(forceDirection, ForceMode.Acceleration);
+        }
+
+        float steer = 0f;
         if (steeringWheel != null)
         {
             float normalizedAngle = steeringWheel.currentSteerAngle / steeringWheel.maxSteerAngle;
-            steerAngle = normalizedAngle * maxWheelSteerAngle;
+            steer = normalizedAngle * maxSteerAngle;
         }
 
-        networkSteerAngle = steerAngle;
+        networkSteerAngle = steer;
 
-        foreach (WheelPair wheel in wheels)
+        if (Mathf.Abs(steer) > 0.05f && carRb.linearVelocity.magnitude > 0.5f)
         {
-            if (wheel.generatedCollider == null) continue;
-
-            if (wheel.isMotorWheel)
-            {
-                wheel.generatedCollider.motorTorque = appliedTorque;
-                wheel.generatedCollider.brakeTorque = appliedBrake;
-            }
-
-            if (wheel.isSteerWheel)
-            {
-                wheel.generatedCollider.steerAngle = steerAngle;
-            }
-
-            UpdateWheelMesh(wheel.generatedCollider, wheel.visualMesh);
+            transform.Rotate(Vector3.up, steer * Time.deltaTime * 1.5f);
         }
-    }
 
-    private void UpdateWheelMesh(WheelCollider collider, Transform mesh)
-    {
-        if (mesh == null || collider == null) return;
-        collider.GetWorldPose(out Vector3 position, out Quaternion rotation);
-        mesh.position = position;
-        mesh.rotation = rotation;
-    }
-
-    private void ApplyRemoteWheelVisuals()
-    {
-        foreach (WheelPair wheel in wheels)
+        // Vorderreifen optisch einlenken
+        foreach (AssignedWheel wheel in wheels)
         {
-            if (wheel.visualMesh == null) continue;
-            if (wheel.isSteerWheel)
+            if (wheel.isSteerWheel && wheel.visualMesh != null)
             {
-                wheel.visualMesh.localRotation = Quaternion.Euler(wheel.visualMesh.localRotation.eulerAngles.x, networkSteerAngle, wheel.visualMesh.localRotation.eulerAngles.z);
+                wheel.visualMesh.localRotation = Quaternion.Euler(wheel.visualMesh.localRotation.eulerAngles.x, steer, wheel.visualMesh.localRotation.eulerAngles.z);
             }
         }
     }
@@ -253,10 +235,6 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
             playerRig.transform.rotation = currentSeat.rotation;
         }
     }
-
-    #endregion
-
-    #region Photon PUN 2 Multiplayer Steuerung
 
     private void HandleCarEntryExit()
     {
@@ -291,12 +269,10 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
     {
         if (seatIndex < 0 || seatIndex >= seats.Count) return;
 
-        // Wenn der lokale Spieler der Aufrufer ist
         if (PhotonNetwork.LocalPlayer.ActorNumber == actorNumber)
         {
             bool asDriver = (seatIndex == 0);
 
-            // Fahrerrechte anfordern (Photon Ownership)
             if (asDriver)
             {
                 photonView.RequestOwnership();
@@ -310,7 +286,6 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
                 if (playerRb != null) playerRb.isKinematic = true;
 
                 currentSeat = seats[seatIndex];
-                currentSeatIndex = seatIndex;
                 isDriving = asDriver;
                 isPassenger = !asDriver;
 
@@ -342,32 +317,24 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
             isPassenger = false;
             playerRig = null;
             currentSeat = null;
-            currentSeatIndex = -1;
         }
     }
 
-    // IPunObservable Implementierung zur Positions- und Datenübertragung
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
         if (stream.IsWriting)
         {
-            // Besitzer sendet Position, Rotation und Lenkwinkel
             stream.SendNext(carRb.position);
             stream.SendNext(carRb.rotation);
             stream.SendNext(networkSteerAngle);
         }
         else
         {
-            // Andere Spieler empfangen die Daten
             networkPosition = (Vector3)stream.ReceiveNext();
             networkRotation = (Quaternion)stream.ReceiveNext();
             networkSteerAngle = (float)stream.ReceiveNext();
         }
     }
-
-    #endregion
-
-    #region Diagnostics & Presets
 
     private void ConfigureVehiclePreset()
     {
@@ -376,24 +343,24 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
         switch (vehicleType)
         {
             case VehiclePreset.TwoSeater:
-                motorTorque = 1800f;
-                brakeTorque = 3000f;
-                centerOfMassOffset = new Vector3(0f, -0.4f, 0f);
+                accelerationPower = 2500f;
+                brakePower = 4000f;
+                centerOfMassOffset = new Vector3(0f, -0.8f, 0f);
                 break;
             case VehiclePreset.FourSeater:
-                motorTorque = 2200f;
-                brakeTorque = 3500f;
-                centerOfMassOffset = new Vector3(0f, -0.35f, 0f);
+                accelerationPower = 3000f;
+                brakePower = 4500f;
+                centerOfMassOffset = new Vector3(0f, -0.7f, 0f);
                 break;
             case VehiclePreset.Truck:
-                motorTorque = 3500f;
-                brakeTorque = 5000f;
-                centerOfMassOffset = new Vector3(0f, -0.25f, 0f);
+                accelerationPower = 4500f;
+                brakePower = 6000f;
+                centerOfMassOffset = new Vector3(0f, -0.6f, 0f);
                 break;
             case VehiclePreset.Bus:
-                motorTorque = 4500f;
-                brakeTorque = 6500f;
-                centerOfMassOffset = new Vector3(0f, -0.15f, 0f);
+                accelerationPower = 6000f;
+                brakePower = 8000f;
+                centerOfMassOffset = new Vector3(0f, -0.5f, 0f);
                 break;
         }
 
@@ -402,39 +369,4 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
             carRb.centerOfMass = centerOfMassOffset;
         }
     }
-
-    private IEnumerator RoutineWheelStatusCheck()
-    {
-        WaitForSeconds waitTwoSeconds = new WaitForSeconds(2.0f);
-
-        while (true)
-        {
-            yield return waitTwoSeconds;
-
-            if (photonView.IsMine)
-            {
-                for (int i = 0; i < wheels.Count; i++)
-                {
-                    WheelPair wheel = wheels[i];
-                    if (wheel.generatedCollider == null) continue;
-
-                    WheelCollider col = wheel.generatedCollider;
-                    Vector3 wheelDown = -col.transform.up;
-                    float downDot = Vector3.Dot(wheelDown, Vector3.down);
-
-                    if (downDot < 0.7f)
-                    {
-                        Debug.LogError($"<color=#FF0000>[PUN VRCar] Reifen [{i}] '{wheel.name}': Ausrichtung prüfen!</color>");
-                    }
-                }
-            }
-        }
-    }
-
-    private void RunSystemCheck()
-    {
-        Debug.Log($"[PUN VRCar] Initialisiert für GameObject: {gameObject.name} | ViewID: {photonView.ViewID}");
-    }
-
-    #endregion
 }
