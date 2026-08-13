@@ -18,14 +18,14 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
     }
 
     [System.Serializable]
-    public class AssignedWheel
+    public class WheelSlot
     {
-        public string name;
-        [Tooltip("Das 3D-Reifenmesh (Hub1-Hub4)")]
+        public string name = "Rad Slot";
+        [Tooltip("Das 3D-Reifenmesh aus der Hierarchy hier reinziehen")]
         public Transform visualMesh;
-        [Tooltip("Der Collider, den du aus der Hierarchy hier reingezogen hast")]
+        [Tooltip("Der dazugehörige Collider aus der Hierarchy hier reinziehen")]
         public Collider wheelCollider;
-        public bool isMotorWheel = false;
+        public bool isMotorWheel = true;
         public bool isSteerWheel = false;
     }
 
@@ -43,18 +43,9 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private List<TriggerZone> entryDoors = new List<TriggerZone>();
     [SerializeField] private VRSteeringWheel steeringWheel;
 
-    [Header("🎯 4 COLLIDER AUS DER HIERARCHY HIER REINZIEHEN")]
-    [Tooltip("Ziehe hier deinen Collider für Vorne Links rein")]
-    [SerializeField] private Collider frontLeftCollider;
-    [Tooltip("Ziehe hier deinen Collider für Vorne Rechts rein")]
-    [SerializeField] private Collider frontRightCollider;
-    [Tooltip("Ziehe hier deinen Collider für Hinten Links rein")]
-    [SerializeField] private Collider rearLeftCollider;
-    [Tooltip("Ziehe hier deinen Collider für Hinten Rechts rein")]
-    [SerializeField] private Collider rearRightCollider;
-
-    [Header("🛞 Automatisch Verknüpfte Räder")]
-    [SerializeField] private List<AssignedWheel> wheels = new List<AssignedWheel>();
+    [Header("🛞 RÄDER IM INSPECTOR MANUELL ZUWEISEN")]
+    [Tooltip("Trage hier deine Räder ein und ziehe Mesh + Collider rein")]
+    [SerializeField] private List<WheelSlot> wheels = new List<WheelSlot>();
 
     // Zustände & Referenzen
     private bool isDriving = false;
@@ -77,7 +68,7 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
         carRb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
         ConfigureVehiclePreset();
-        SetupAndAdjustInspectorColliders();
+        InitializeManualWheels();
     }
 
     private void Start()
@@ -115,49 +106,19 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
     }
 
     /// <summary>
-    /// Nimmt die 4 manuell reingezogenen Collider, passt sie an die 3D-Meshes an und schaltet sie aktiv.
+    /// Richtet die manuell im Inspector reingezogenen Collider an den Mesh-Positionen aus.
     /// </summary>
-    private void SetupAndAdjustInspectorColliders()
+    private void InitializeManualWheels()
     {
-        Transform reifenFolder = transform.Find("REIFEN");
-        if (reifenFolder == null) reifenFolder = transform;
-
-        Transform hub4 = reifenFolder.Find("Hub4"); // Vorne Links
-        Transform hub3 = reifenFolder.Find("Hub3"); // Vorne Rechts
-        Transform hub2 = reifenFolder.Find("Hub2"); // Hinten Links
-        Transform hub1 = reifenFolder.Find("Hub1"); // Hinten Rechts
-
-        wheels.Clear();
-
-        // Vorne Links (Hub4)
-        if (frontLeftCollider != null && hub4 != null)
+        foreach (var wheel in wheels)
         {
-            AdjustColliderToMesh(frontLeftCollider, hub4);
-            wheels.Add(new AssignedWheel { name = "Vorne Links (Hub4)", visualMesh = hub4, wheelCollider = frontLeftCollider, isMotorWheel = true, isSteerWheel = true });
+            if (wheel.wheelCollider != null && wheel.visualMesh != null)
+            {
+                AdjustColliderToMesh(wheel.wheelCollider, wheel.visualMesh);
+            }
         }
 
-        // Vorne Rechts (Hub3)
-        if (frontRightCollider != null && hub3 != null)
-        {
-            AdjustColliderToMesh(frontRightCollider, hub3);
-            wheels.Add(new AssignedWheel { name = "Vorne Rechts (Hub3)", visualMesh = hub3, wheelCollider = frontRightCollider, isMotorWheel = true, isSteerWheel = true });
-        }
-
-        // Hinten Links (Hub2)
-        if (rearLeftCollider != null && hub2 != null)
-        {
-            AdjustColliderToMesh(rearLeftCollider, hub2);
-            wheels.Add(new AssignedWheel { name = "Hinten Links (Hub2)", visualMesh = hub2, wheelCollider = rearLeftCollider, isMotorWheel = true, isSteerWheel = false });
-        }
-
-        // Hinten Rechts (Hub1)
-        if (rearRightCollider != null && hub1 != null)
-        {
-            AdjustColliderToMesh(rearRightCollider, hub1);
-            wheels.Add(new AssignedWheel { name = "Hinten Rechts (Hub1)", visualMesh = hub1, wheelCollider = rearRightCollider, isMotorWheel = true, isSteerWheel = false });
-        }
-
-        Debug.Log("<color=#00FF00> BESTÄTIGUNG: Alle 4 Reingezogenen Collider wurden automatisch an die Hub-Meshes angepasst!</color>");
+        Debug.Log("<color=#00FF00> BESTÄTIGUNG: Manuell reingezogene Räder wurden eingerichtet!</color>");
     }
 
     private void AdjustColliderToMesh(Collider col, Transform targetMesh)
@@ -218,7 +179,7 @@ public class VRGorillaCar : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         // Vorderreifen optisch einlenken
-        foreach (AssignedWheel wheel in wheels)
+        foreach (WheelSlot wheel in wheels)
         {
             if (wheel.isSteerWheel && wheel.visualMesh != null)
             {
