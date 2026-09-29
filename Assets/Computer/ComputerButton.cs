@@ -21,18 +21,17 @@ public class ComputerButton : MonoBehaviour
     public float hapticDuration = 0.1f;
 
     [Header("Sound")]
-    public AudioSource clickSound; // Ziehe hier deine AudioSource rein
+    public AudioSource clickSound;
 
     [Header("Visuelles Feedback (Farbe)")]
-    public Color flashColor = Color.red; // Farbe beim Drauftippen
-    public float flashDuration = 0.15f; // Dauer in Sekunden
+    public Color flashColor = Color.red;
+    public float flashDuration = 0.15f;
     private Renderer buttonRenderer;
     private Color originalColor;
     private Coroutine flashCoroutine;
 
     private void Awake()
     {
-        // Holt sich den Renderer und speichert die normale Tastenfarbe
         buttonRenderer = GetComponent<Renderer>();
         if (buttonRenderer != null && buttonRenderer.material != null)
         {
@@ -44,17 +43,21 @@ public class ComputerButton : MonoBehaviour
     {
         if (other.CompareTag("HandTag"))
         {
+            // --- ISMINE CHECK ---
+            // Reagiert NUR auf die lokale Hand des Spielers!
+            PhotonView handPV = other.GetComponentInParent<PhotonView>();
+            if (handPV != null && !handPV.IsMine)
+            {
+                return; // Hand von anderen Spielern ignorieren
+            }
+
             if (Time.time >= lastPressedTime + pressCooldown)
             {
                 lastPressedTime = Time.time;
 
-                // --- VISUELLES FEEDBACK (Taste wird rot) ---
                 TriggerColorFlash();
-
-                // --- VIBRATION ---
                 TriggerHapticFeedback(other);
 
-                // --- SOUND ---
                 if (clickSound != null)
                 {
                     clickSound.Play();
@@ -79,12 +82,8 @@ public class ComputerButton : MonoBehaviour
 
     private IEnumerator FlashRoutine()
     {
-        // Auf Rot (oder flashColor) wechseln
         buttonRenderer.material.color = flashColor;
-
         yield return new WaitForSeconds(flashDuration);
-
-        // Zurück zur Ursprungsfarbe
         buttonRenderer.material.color = originalColor;
         flashCoroutine = null;
     }
@@ -98,7 +97,6 @@ public class ComputerButton : MonoBehaviour
         }
 
         InputDevice device = InputDevices.GetDeviceAtXRNode(handNode);
-
         if (device.isValid)
         {
             device.SendHapticImpulse(0u, hapticIntensity, hapticDuration);
@@ -109,7 +107,6 @@ public class ComputerButton : MonoBehaviour
     {
         string val = buttonValue.ToUpper();
 
-        // Sendet Befehle an den NameManager (falls zugewiesen)
         if (nameManager != null)
         {
             if (val == "SWITCH") nameManager.SwitchMode();
@@ -118,7 +115,6 @@ public class ComputerButton : MonoBehaviour
             else nameManager.OnKeyPressed(val);
         }
 
-        // Sendet Befehle an den ColorManager (falls zugewiesen)
         if (colorManager != null)
         {
             if (val == "SWITCH") colorManager.SwitchColorMode();

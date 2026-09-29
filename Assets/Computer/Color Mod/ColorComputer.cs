@@ -22,13 +22,13 @@ public class ColorComputer : MonoBehaviourPunCallbacks
     private bool isDisplayingMessage = false;
 
     // One UI & High-Tech Neon Farbpalette
-    private string redHex = "#FF3366";      // Neon-Rot/Pink
-    private string greenHex = "#00FF66";    // Neon-Grün
-    private string blueHex = "#00F0FF";     // Cyber-Cyan/Blau
-    private string inactiveColor = "#2A2E3D"; // Dunkles Slate-Grau
-    private string textMainColor = "#FFFFFF";  // Reinweiß
-    private string textMutedColor = "#7E8B9B"; // Mattes Grau
-    private string accentColor = "#6C5CE7";    // Modernes Violett/Blau
+    private string redHex = "#FF3366";
+    private string greenHex = "#00FF66";
+    private string blueHex = "#00F0FF";
+    private string inactiveColor = "#2A2E3D";
+    private string textMainColor = "#FFFFFF";
+    private string textMutedColor = "#7E8B9B";
+    private string accentColor = "#6C5CE7";
 
     // Cursor Blink-Effekt
     private float cursorTimer;
@@ -38,14 +38,11 @@ public class ColorComputer : MonoBehaviourPunCallbacks
     {
         if (colorScreenText == null) return;
 
-        // Gespeicherte Farben laden (Standardwerte auf 0 setzen)
         rVal = PlayerPrefs.GetInt("SavedR", 0);
         gVal = PlayerPrefs.GetInt("SavedG", 0);
         bVal = PlayerPrefs.GetInt("SavedB", 0);
 
         UpdateColorDisplay();
-
-        // Farbe beim Starten direkt auf den Gorilla-Avatar anwenden
         ApplyColorToLocalPlayer();
 
         if (PhotonNetwork.InRoom)
@@ -56,7 +53,6 @@ public class ColorComputer : MonoBehaviourPunCallbacks
 
     void Update()
     {
-        // Smooth Cursor Blink & UI Refresh
         cursorTimer += Time.deltaTime;
         if (cursorTimer >= 0.4f)
         {
@@ -113,17 +109,14 @@ public class ColorComputer : MonoBehaviourPunCallbacks
     {
         if (colorScreenText == null) return;
 
-        // Dynamic Cursors
         string rCursor = (colorMode == 0 && showCursor) ? "❚" : "";
         string gCursor = (colorMode == 1 && showCursor) ? "❚" : "";
         string bCursor = (colorMode == 2 && showCursor) ? "❚" : "";
 
-        // Prozentrechnung der RGB-Werte für cooles HUD-Feeling
         int rPct = Mathf.RoundToInt((rVal / 9f) * 100);
         int gPct = Mathf.RoundToInt((gVal / 9f) * 100);
         int bPct = Mathf.RoundToInt((bVal / 9f) * 100);
 
-        // Styling der R-, G-, B-Zeilen
         string rLine = (colorMode == 0)
             ? $"<color={redHex}><b>> RED:   [{rVal}/9]  ({rPct}%){rCursor}</b></color>"
             : $"<color={textMutedColor}>  RED:   [{rVal}/9]  ({rPct}%)</color>";
@@ -136,29 +129,23 @@ public class ColorComputer : MonoBehaviourPunCallbacks
             ? $"<color={blueHex}><b>> BLUE:  [{bVal}/9]  ({bPct}%){bCursor}</b></color>"
             : $"<color={textMutedColor}>  BLUE:  [{bVal}/9]  ({bPct}%)</color>";
 
-        // Erzeugt einen HEX-Farbcode aus den aktuellen 0-9 Werten für die Live-Vorschau
         Color currentGorillaColor = new Color(rVal / 9f, gVal / 9f, bVal / 9f);
         string currentPreviewHex = ColorUtility.ToHtmlStringRGB(currentGorillaColor);
 
-        // Header-Daten
         string timeStr = System.DateTime.Now.ToString("HH:mm");
 
         StringBuilder sb = new StringBuilder();
 
-        // One UI Header
         sb.AppendLine($"<size=65%><color={accentColor}>OneUI 1.0 OS</color>  |  {timeStr}  |  <color={textMutedColor}>{gameVersion}</color></size>");
         sb.AppendLine($"<color=#1F2330>────────────────────────────────</color>");
 
-        // Titel & Live-Vorschau-Block
         sb.AppendLine($"<size=90%><color={textMainColor}><b>CHROMATIC MATRIX</b></color></size>");
         sb.AppendLine($"PREVIEW: <color=#{currentPreviewHex}><b>█████████████</b></color>\n");
 
-        // Regler-Karten
         sb.AppendLine(rLine);
         sb.AppendLine(gLine);
         sb.AppendLine(bLine);
 
-        // Footer
         sb.AppendLine($"\n<color=#1F2330>────────────────────────────────</color>");
         sb.AppendLine($"<size=60%><color={accentColor}>[SWITCH]</color> <color={textMainColor}>Select Axis</color>  |  <color={accentColor}>[ENTER/SAVE]</color> <color={textMainColor}>Sync Avatar</color></size>");
 
@@ -167,10 +154,8 @@ public class ColorComputer : MonoBehaviourPunCallbacks
 
     private void ApplyColorToLocalPlayer()
     {
-        // Wandelt 0-9 in 0.0 - 1.0 RGB-Werte um
         Color gorillaColor = new Color(rVal / 9f, gVal / 9f, bVal / 9f);
 
-        // Speichert auch im PlayerPrefs-Standard für Farb-Saves
         PlayerPrefs.SetFloat("Red", gorillaColor.r);
         PlayerPrefs.SetFloat("Green", gorillaColor.g);
         PlayerPrefs.SetFloat("Blue", gorillaColor.b);

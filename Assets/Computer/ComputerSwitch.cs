@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.XR; // WICHTIG für Vibration
+using UnityEngine.XR;
+using Photon.Pun;
 
 public class ComputerSwitch : MonoBehaviour
 {
@@ -18,18 +19,17 @@ public class ComputerSwitch : MonoBehaviour
     public float hapticDuration = 0.1f;
 
     [Header("Sound")]
-    public AudioSource clickSound; // Hier wieder deine AudioSource reinziehen
+    public AudioSource clickSound;
 
     [Header("Visuelles Feedback (Farbe)")]
-    public Color flashColor = Color.red; // Farbe beim Drauftippen
-    public float flashDuration = 0.15f; // Dauer in Sekunden
+    public Color flashColor = Color.red;
+    public float flashDuration = 0.15f;
     private Renderer buttonRenderer;
     private Color originalColor;
     private Coroutine flashCoroutine;
 
     private void Awake()
     {
-        // Holt sich den Renderer und speichert die normale Tastenfarbe
         buttonRenderer = GetComponent<Renderer>();
         if (buttonRenderer != null && buttonRenderer.material != null)
         {
@@ -39,35 +39,37 @@ public class ComputerSwitch : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Prüfen, ob die Hand den Button berührt
-        if (other.CompareTag("HandTag") && Time.time > lastPressed + cooldown)
+        if (other.CompareTag("HandTag"))
         {
-            lastPressed = Time.time;
-
-            // --- VISUELLES FEEDBACK (Taste wird rot) ---
-            TriggerColorFlash();
-
-            // --- VIBRATION ---
-            TriggerHapticFeedback(other);
-
-            // --- SOUND ---
-            if (clickSound != null)
+            // --- ISMINE CHECK ---
+            // Reagiert NUR auf die eigene VR-Hand!
+            PhotonView handPV = other.GetComponentInParent<PhotonView>();
+            if (handPV != null && !handPV.IsMine)
             {
-                clickSound.Play();
+                return; // Fremde Hände ablocken
             }
 
-            // A: Wenn der Farb-Manager zugewiesen ist
-            if (colorManager != null)
+            if (Time.time > lastPressed + cooldown)
             {
-                colorManager.SwitchColorMode();
-                Debug.Log("Color Mode gewechselt!");
-            }
+                lastPressed = Time.time;
 
-            // B: Wenn der Namens-Manager zugewiesen ist
-            if (nameManager != null)
-            {
-                nameManager.SwitchMode();
-                Debug.Log("Name/Room Mode gewechselt!");
+                TriggerColorFlash();
+                TriggerHapticFeedback(other);
+
+                if (clickSound != null)
+                {
+                    clickSound.Play();
+                }
+
+                if (colorManager != null)
+                {
+                    colorManager.SwitchColorMode();
+                }
+
+                if (nameManager != null)
+                {
+                    nameManager.SwitchMode();
+                }
             }
         }
     }
@@ -86,19 +88,14 @@ public class ComputerSwitch : MonoBehaviour
 
     private IEnumerator FlashRoutine()
     {
-        // Auf Rot (oder flashColor) wechseln
         buttonRenderer.material.color = flashColor;
-
         yield return new WaitForSeconds(flashDuration);
-
-        // Zurück zur Ursprungsfarbe
         buttonRenderer.material.color = originalColor;
         flashCoroutine = null;
     }
 
     private void TriggerHapticFeedback(Collider handCollider)
     {
-        // Check ob links oder rechts (prüft Namen des Objekts und übergeordneter Rigs)
         XRNode handNode = XRNode.RightHand;
         if (handCollider.gameObject.name.ToLower().Contains("left") || handCollider.transform.root.name.ToLower().Contains("left"))
         {

@@ -96,7 +96,12 @@ public class ComputerManager : MonoBehaviourPunCallbacks
                 else if (currentMode == 1) JoinRoom();
                 break;
 
+            // Flexiblere Prüfung für Lösch-Tasten (Backspace, <-, delete, etc.)
             case "BACKSPACE":
+            case "<------":
+            case "DELETE":
+            case "<-":
+            case "<":
                 if (currentMode == 0 && nameInput.Length > 0)
                     nameInput = nameInput.Substring(0, nameInput.Length - 1);
                 else if (currentMode == 1 && roomInput.Length > 0)
@@ -125,14 +130,14 @@ public class ComputerManager : MonoBehaviourPunCallbacks
 
         // Header-Daten auslesen (Uhrzeit, Ping, Spieler & Raum)
         string timeStr = System.DateTime.Now.ToString("HH:mm");
-        int ping = PhotonNetwork.GetPing();
-        int onlinePlayers = PhotonNetwork.CountOfPlayers;
+        int ping = PhotonNetwork.IsConnected ? PhotonNetwork.GetPing() : 0;
+        int onlinePlayers = PhotonNetwork.IsConnected ? PhotonNetwork.CountOfPlayers : 0;
         string currentRoomName = PhotonNetwork.InRoom ? PhotonNetwork.CurrentRoom.Name : "NONE";
 
         // Dynamische Farbwahl basierend auf der Latenz (Ping)
         string pingColor = pingBadColor;
-        if (ping <= 80) pingColor = pingGoodColor;
-        else if (ping <= 160) pingColor = pingOkColor;
+        if (ping <= 80 && PhotonNetwork.IsConnected) pingColor = pingGoodColor;
+        else if (ping <= 160 && PhotonNetwork.IsConnected) pingColor = pingOkColor;
 
         string pingDisplay = PhotonNetwork.IsConnected
             ? $"<color={pingColor}>{ping}ms</color>"
