@@ -131273,6 +131273,55 @@ Transform:
   m_Children: []
   m_Father: {fileID: 933821129}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1190278037
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1190278039}
+  - component: {fileID: 1190278038}
+  m_Layer: 0
+  m_Name: GorillaHealthCheck
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1190278038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1190278037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf32c8b9f54a77942bcc4a236d7e9b03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GorillaHealthCheck
+  pcTestAktivieren: 1
+  zeigeDetailWarnungen: 1
+  zeigeInGameKasten: 0
+  jetztDiagnoseAusfuehren: 0
+  jetztLogsLoeschen: 0
+--- !u!4 &1190278039
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1190278037}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.23797, y: 4.83886, z: 0.37801}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1194580273
 Mesh:
   m_ObjectHideFlags: 0
@@ -244412,7 +244461,6 @@ GameObject:
   - component: {fileID: 4792018538021935314}
   - component: {fileID: 4792018538021935315}
   - component: {fileID: 4792018538021935316}
-  - component: {fileID: 4792018538021935317}
   m_Layer: 9
   m_Name: RightHand Controller
   m_TagString: HandTag
@@ -244483,20 +244531,6 @@ MonoBehaviour:
   isLeftHand: 0
   intensity: 0.3
   duration: 0.05
---- !u!114 &4792018538021935317
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4792018538021935313}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abf463eeab6a3384ca253dc0cf85d6f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GorillaWheelGrabber
-  handType: 1
-  gripThreshold: 0.5
 --- !u!33 &4792018538493423509
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -244735,7 +244769,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4792018539405867688}
   - component: {fileID: 4792018539405867691}
-  - component: {fileID: 4792018539405867692}
   m_Layer: 0
   m_Name: Gorilla Rig
   m_TagString: Player
@@ -244760,18 +244793,6 @@ MonoBehaviour:
   m_CameraFloorOffsetObject: {fileID: 4792018539181352258}
   m_RequestedTrackingOriginMode: 2
   m_CameraYOffset: 1.1176
---- !u!114 &4792018539405867692
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4792018539405867690}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ad5974faa5c6818499b83a84f84f6040, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DontDestroyRig
 --- !u!114 &4792018539543894814
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244832,7 +244853,6 @@ GameObject:
   - component: {fileID: 4792018539543894820}
   - component: {fileID: 4792018539543894821}
   - component: {fileID: 4792018539543894822}
-  - component: {fileID: 4792018539543894823}
   m_Layer: 8
   m_Name: LeftHand Controller
   m_TagString: HandTag
@@ -244903,20 +244923,6 @@ MonoBehaviour:
   isLeftHand: 1
   intensity: 0.3
   duration: 0.05
---- !u!114 &4792018539543894823
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4792018539543894819}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abf463eeab6a3384ca253dc0cf85d6f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GorillaWheelGrabber
-  handType: 0
-  gripThreshold: 0.5
 --- !u!23 &4815881317105628629
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -249086,6 +249092,7 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 753005081}
+  - {fileID: 1190278039}
   - {fileID: 4792018539405867688}
   - {fileID: 183957711}
   - {fileID: 1663710155}
