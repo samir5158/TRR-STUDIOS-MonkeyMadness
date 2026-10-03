@@ -2,41 +2,88 @@ using UnityEngine;
 using TMPro;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Text;
 
+/// <summary>
+/// Performance-Scoreboard mit Neon-Hellblau für den eigenen Spieler.
+/// </summary>
 public class PlayerScoreboard : MonoBehaviourPunCallbacks
 {
-    public TMP_Text boardText; 
+    [Header("================ UI SETTINGS ================")]
+    [Tooltip("TextMeshPro Komponente auf dem Scoreboard-Board.")]
+    public TMP_Text boardText;
 
-    void Update()
+    private StringBuilder sb = new StringBuilder();
+
+    private void Start()
+    {
+        UpdateScoreboard();
+    }
+
+    /// <summary>
+    /// Baut die Spielerliste auf.
+    /// </summary>
+    public void UpdateScoreboard()
     {
         if (boardText == null) return;
 
-        // Wenn wir im Raum sind -> Spielerliste zeigen
+        sb.Clear();
+
+        // 1. Wenn der Spieler in einem Raum ist
         if (PhotonNetwork.InRoom)
         {
-            string liste = "<color=yellow>RAUM: " + PhotonNetwork.CurrentRoom.Name + "</color>\n";
-            liste += "SPIELER: " + PhotonNetwork.CurrentRoom.PlayerCount + " / 10\n";
-            liste += "--------------------------\n";
+            Room currentRoom = PhotonNetwork.CurrentRoom;
 
+            // HEADER (Dunkelrot)
+            sb.AppendLine("<color=#8B0000><b>════════════════════════════</b></color>");
+            sb.AppendLine($"<color=#8B0000><b>RAUM:</b></color> <color=#FFFFFF>{currentRoom.Name.ToUpper()}</color>");
+            sb.AppendLine($"<color=#8B0000><b>SPIELER:</b></color> <color=#FFFFFF>{currentRoom.PlayerCount} / {currentRoom.MaxPlayers}</color>");
+            sb.AppendLine("<color=#8B0000><b>════════════════════════════</b></color>");
+            sb.AppendLine();
+
+            // LISTE ALLER SPIELER
             foreach (Player p in PhotonNetwork.PlayerList)
             {
-                string n = string.IsNullOrEmpty(p.NickName) ? "Affe " + p.ActorNumber : p.NickName;
+                string name = string.IsNullOrEmpty(p.NickName) ? $"AFFE #{p.ActorNumber}" : p.NickName.ToUpper();
+
+                // Host-Markierung in Orange
+                string hostTag = p.IsMasterClient ? " <color=#FF8C00>[HOST]</color>" : "";
+
                 if (p == PhotonNetwork.LocalPlayer)
-                    liste += "<color=green> > " + n + " (DU)</color>\n";
+                {
+                    // Du selbst (Leuchtendes Neon-Hellblau)
+                    sb.AppendLine($"<color=#00E5FF>► <b>{name}</b> (DU)</color>{hostTag}");
+                }
                 else
-                    liste += "   " + n + "\n";
+                {
+                    // Andere normale Spieler (Sauberes Weiß)
+                    sb.AppendLine($"  <color=#FFFFFF>{name}</color>{hostTag}");
+                }
             }
-            boardText.text = liste;
+
+            sb.AppendLine();
+            sb.AppendLine("<color=#8B0000><b>════════════════════════════</b></color>");
         }
         else
         {
-            // Wenn wir noch nicht im Raum sind -> Status zeigen
-            boardText.text = "<color=red>VERBINDUNG...</color>\nStatus: " + PhotonNetwork.NetworkClientState.ToString();
+            // 2. Nicht im Raum
+            sb.AppendLine("<color=#8B0000><b>════════════════════════════</b></color>");
+            sb.AppendLine("<color=#8B0000><b>STATUS: NICHT VERBUNDEN</b></color>");
+            sb.AppendLine("<color=#8B0000><b>════════════════════════════</b></color>");
+            sb.AppendLine();
+            sb.AppendLine($"<color=#8B0000>STATUS:</color> <color=#FFFFFF>{PhotonNetwork.NetworkClientState}</color>");
         }
+
+        boardText.text = sb.ToString();
     }
 
-    // Diese Funktionen sorgen dafür, dass das Board sofort reagiert, wenn jemand kommt/geht
-    public override void OnJoinedRoom() { Update(); }
-    public override void OnPlayerEnteredRoom(Player newPlayer) { Update(); }
-    public override void OnPlayerLeftRoom(Player otherPlayer) { Update(); }
+    // ================= PHOTON CALLBACKS =================
+
+    public override void OnJoinedRoom() { UpdateScoreboard(); }
+    public override void OnLeftRoom() { UpdateScoreboard(); }
+    public override void OnPlayerEnteredRoom(Player newPlayer) { UpdateScoreboard(); }
+    public override void OnPlayerLeftRoom(Player otherPlayer) { UpdateScoreboard(); }
+    public override void OnMasterClientSwitched(Player newMasterClient) { UpdateScoreboard(); }
+    public override void OnConnectedToMaster() { UpdateScoreboard(); }
+    public override void OnDisconnected(DisconnectCause cause) { UpdateScoreboard(); }
 }
