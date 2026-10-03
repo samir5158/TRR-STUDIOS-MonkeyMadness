@@ -31,6 +31,10 @@ namespace Photon.Voice
         LogLevel Level { get; }
 
         // Must check the level itself
+        void Log(LogLevel level, string msg);
+
+        // Only use constant 'fmt' string! Use the other overload for dynamicly created strings.
+        // Must check the level itself
         void Log(LogLevel level, string fmt, params object[] args);
     }
 

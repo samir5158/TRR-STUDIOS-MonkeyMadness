@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 8259745087ce8ce4296aff099d4aef9e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 130518
+  packageName: Photon Voice 2
+  packageVersion: 2.64
+  assetPath: Assets/Photon/PhotonVoice/PhotonVoiceApi/Core/VPxCodec.cs
+  uploadId: 1007766

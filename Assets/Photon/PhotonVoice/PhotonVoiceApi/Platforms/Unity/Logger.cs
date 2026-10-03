@@ -12,6 +12,17 @@ namespace Photon.Voice.Unity
 
         public LogLevel Level { get; set; }
 
+        public void Log(LogLevel level, string msg)
+        {
+            if (this.Level >= level)
+            {
+                if (level >= LogLevel.Info) Debug.Log(msg);
+                else if (level == LogLevel.Warning) Debug.Log(msg);
+                // anything else is an error
+                else Debug.LogError(msg);
+            }
+        }
+
         public void Log(LogLevel level, string fmt, params object[] args)
         {
             if (this.Level >= level)

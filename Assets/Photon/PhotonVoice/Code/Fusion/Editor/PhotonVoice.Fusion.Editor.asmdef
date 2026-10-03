@@ -5,7 +5,8 @@
         "Fusion.Editor",
         "PhotonVoice.Fusion",
         "PhotonVoice.Editor",
-        "Fusion.Unity.Editor"
+        "Fusion.Unity.Editor",
+        "PhotonVoice"
     ],
     "includePlatforms": [
         "Editor"

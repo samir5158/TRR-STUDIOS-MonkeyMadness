@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 1cfeddf628b5629458c97bcd66202915
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 130518
+  packageName: Photon Voice 2
+  packageVersion: 2.64
+  assetPath: Assets/Photon/PhotonVoice/PhotonVoiceApi/Platforms/Unity/Video/Resources/PhotonVoiceApi/GLES2/VideoTextureExtScreen.shader
+  uploadId: 1007766

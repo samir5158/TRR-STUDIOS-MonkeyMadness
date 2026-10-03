@@ -156,6 +156,9 @@ namespace Photon.Voice.Fusion
             {
 #if FUSION2
                 settings.AppIdVoice = PhotonAppSettings.Global.AppSettings.AppIdVoice;
+#if FUSION_2_1_OR_NEWER || (!FUSION_2_0_13 && !FUSION_2_0_12 && !FUSION_2_0_11 && !FUSION_2_0_10 && !FUSION_2_0_9 && !FUSION_2_0_8 && !FUSION_2_0_7 && !FUSION_2_0_6 && !FUSION_2_0_5 && !FUSION_2_0_4 && !FUSION_2_0_3 && !FUSION_2_0_2 && !FUSION_2_0_1)
+                settings.AppIdVideo = PhotonAppSettings.Global.AppSettings.AppIdVideo;
+#endif
                 settings.AppVersion = PhotonAppSettings.Global.AppSettings.AppVersion;
                 settings.FixedRegion = PhotonAppSettings.Global.AppSettings.FixedRegion;
                 settings.UseNameServer = PhotonAppSettings.Global.AppSettings.UseNameServer;
@@ -398,7 +401,7 @@ namespace Photon.Voice.Fusion
         {
         }
 
- #if FUSION2
+#if FUSION2
         public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
         {
         }

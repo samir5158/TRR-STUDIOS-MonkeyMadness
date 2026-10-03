@@ -92,6 +92,30 @@ namespace Photon.Voice.Unity
 
     public static class UnityLogger
     {
+        public static void Log(LogLevel level, Object obj, string tag, string objName, string msg)
+        {
+            // obj.name is available only on the main thread, so we pass objName here
+            msg = GetFormatString(level, tag, objName, msg);
+            if (obj == null)
+            {
+                switch (level)
+                {
+                    case LogLevel.Error: Debug.LogError(msg); break;
+                    case LogLevel.Warning: Debug.LogWarning(msg); break;
+                    default: Debug.Log(msg); break;
+                }
+            }
+            else
+            {
+                switch (level)
+                {
+                    case LogLevel.Error: Debug.LogError(msg, obj); break;
+                    case LogLevel.Warning: Debug.LogWarningFormat(msg, obj); break;
+                    default: Debug.Log(msg, obj); break;
+                }
+            }
+        }
+
         public static void Log(LogLevel level, Object obj, string tag, string objName, string fmt, params object[] args)
         {
             // obj.name is available only on the main thread, so we pass objName here

@@ -65,6 +65,26 @@ namespace Photon.Voice.Unity
             }
 
             public LogLevel Level => voiceLogger ? voiceLogger.LogLevel : voiceLoggerLastLevel;
+
+            public void Log(LogLevel level, string msg)
+            {
+                if (voiceLogger != null)
+                {
+                    if (voiceLogger.LogLevel >= level)
+                    {
+                        UnityLogger.Log(level, obj, tag, objName, msg);
+                    }
+                    voiceLoggerLastLevel = voiceLogger.LogLevel;
+                }
+                else
+                {
+                    if (voiceLoggerLastLevel >= level)
+                    {
+                        UnityLogger.Log(level, obj, tag, objName, msg);
+                    }
+                }
+            }
+
             public void Log(LogLevel level, string fmt, params object[] args)
             {
                 if (voiceLogger != null)
@@ -83,6 +103,7 @@ namespace Photon.Voice.Unity
                     }
                 }
             }
+           
         }
 
         private VoiceLogger voiceLogger;

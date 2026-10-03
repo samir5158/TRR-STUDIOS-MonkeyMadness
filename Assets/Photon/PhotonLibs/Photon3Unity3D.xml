@@ -240,9 +240,6 @@
         <member name="F:ExitGames.Client.Photon.EnetChannel.highestReceivedAck">
             <summary>To store the highest acknowledged sequence number (and get some impression what the server already received and stored).</summary>
         </member>
-        <member name="F:ExitGames.Client.Photon.EnetChannel.reliableCommandsInFlight">
-            <summary>Count of reliable commands sent and not yet acknowledged.</summary>
-        </member>
         <member name="F:ExitGames.Client.Photon.EnetChannel.lowestUnacknowledgedSequenceNumber">
             <summary>The lowest sequence number sent but not acknowledged yet. This defines the sequence delta "window" for sending subsequent reliable commands.</summary>
         </member>
@@ -262,6 +259,11 @@
         </member>
         <member name="F:ExitGames.Client.Photon.EnetPeer.datagramEncryptedConnection">
             <summary>Gets enabled by "request" from server (not by client).</summary>
+        </member>
+        <member name="F:ExitGames.Client.Photon.EnetPeer.datagramValidLength">
+            <summary>Number of valid bytes to parse for the datagram currently being read (the decrypted length for
+            datagram-encrypted connections, where the reused decrypt buffer can be longer than the valid data). Set in
+            ReceiveIncomingCommands and read in NCommand.Initialize on the same receive thread, so no lock is needed.</summary>
         </member>
         <member name="F:ExitGames.Client.Photon.EnetPeer.PeerIdForConnect">
             <summary>Initial PeerId as used in Connect command. If EnableServerTracing is false.</summary>
@@ -296,7 +298,7 @@
             gathers commands from all (out)queues until udp-packet is full and sends it!
             </summary>
         </member>
-        <member name="F:ExitGames.Client.Photon.EnetPeer.channelsToUpdateLowestSent">
+        <member name="F:ExitGames.Client.Photon.EnetPeer.lowestSentSequenceNumber">
             <summary>Used to store temporary values in UpdateSendWindow().</summary>
         </member>
         <member name="M:ExitGames.Client.Photon.EnetPeer.EnqueuePhotonMessage(ExitGames.Client.Photon.StreamBuffer,ExitGames.Client.Photon.SendOptions)">
@@ -1818,6 +1820,18 @@
             
              The default server logic will leave any joined game and trigger the respective event.
              </remarks>
+        </member>
+        <member name="M:ExitGames.Client.Photon.PhotonPeer.DisconnectUnderSendLock">
+            <summary>
+            Runs peerBase.Disconnect() under the SendOutgoingLockObject. Meant to be enqueued via
+            EnqueueActionForDispatch so the disconnect happens on the dispatch thread instead of the
+            receive/send threads (see EnetPeer timeout-disconnect and IPhotonSocket.HandleException).
+            </summary>
+            <remarks>
+            Called from the dispatch thread, which already holds DispatchLockObject; this only adds the
+            send lock (the legal Dispatch > SendOutgoing nesting). peerBase.Disconnect() flushes a final
+            Disconnect command via SendOutgoingCommands, so it must run under the send lock.
+            </remarks>
         </member>
         <member name="M:ExitGames.Client.Photon.PhotonPeer.StopThread">
             <summary>

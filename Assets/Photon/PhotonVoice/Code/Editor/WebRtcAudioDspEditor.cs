@@ -19,6 +19,9 @@ namespace Photon.Voice.Unity.Editor
         private SerializedProperty vadSp;
         private SerializedProperty highPassSp;
         private SerializedProperty noiseSuppressionSp;
+        private SerializedProperty noiseSuppressionLevelSp;
+        private SerializedProperty agcLimiterSp;
+        private SerializedProperty vadLikelihoodSp;
         private SerializedProperty reverseStreamDelayMsSp;
 
         private void OnEnable()
@@ -33,6 +36,9 @@ namespace Photon.Voice.Unity.Editor
             this.vadSp = this.serializedObject.FindProperty("vad");
             this.highPassSp = this.serializedObject.FindProperty("highPass");
             this.noiseSuppressionSp = this.serializedObject.FindProperty("noiseSuppression");
+            this.noiseSuppressionLevelSp = this.serializedObject.FindProperty("noiseSuppressionLevel");
+            this.agcLimiterSp = this.serializedObject.FindProperty("agcLimiter");
+            this.vadLikelihoodSp = this.serializedObject.FindProperty("vadLikelihood");
             this.reverseStreamDelayMsSp = this.serializedObject.FindProperty("reverseStreamDelayMs");
         }
 
@@ -61,15 +67,30 @@ namespace Photon.Voice.Unity.Editor
                 EditorGUI.indentLevel++;
                 this.processor.AgcCompressionGain = EditorGUILayout.IntSlider(new GUIContent("AGC Compression Gain"), this.processor.AgcCompressionGain, 0, 90);
                 this.processor.AgcTargetLevel = EditorGUILayout.IntSlider(new GUIContent("AGC Target Level"), this.processor.AgcTargetLevel, 0, 31);
+                this.processor.AgcLimiter = EditorGUILayout.Toggle(new GUIContent("AGC Limiter", "Hard-limit the AGC output at the target level"), this.processor.AgcLimiter);
                 EditorGUI.indentLevel--;
                 this.processor.HighPass = EditorGUILayout.Toggle(new GUIContent("HighPass", "High Pass Filter"), this.processor.HighPass);
                 this.processor.NoiseSuppression = EditorGUILayout.Toggle(new GUIContent("NoiseSuppression", "Noise Suppression"), this.processor.NoiseSuppression);
+                if (this.processor.NoiseSuppression)
+                {
+                    EditorGUI.indentLevel++;
+                    this.processor.NoiseSuppressionLevel = (Voice.WebRTCAudioProcessor.NSLevel)EditorGUILayout.EnumPopup(
+                        new GUIContent("NS Level", "Noise suppression aggressiveness"), this.processor.NoiseSuppressionLevel);
+                    EditorGUI.indentLevel--;
+                }
 
                 if (this.processor.VAD && this.recorder.VoiceDetection)
                 {
                     EditorGUILayout.HelpBox("You have enabled VAD here and in the associated Recorder. Please use only one Voice Detection algorithm.", MessageType.Warning);
                 }
                 this.processor.VAD = EditorGUILayout.Toggle(new GUIContent("VAD", "Voice Activity Detection"), this.processor.VAD);
+                if (this.processor.VAD)
+                {
+                    EditorGUI.indentLevel++;
+                    this.processor.VadLikelihood = (Voice.WebRTCAudioProcessor.VADLikelihood)EditorGUILayout.EnumPopup(
+                        new GUIContent("VAD Likelihood", "How readily a frame is called speech. VeryLow = fewest false positives."), this.processor.VadLikelihood);
+                    EditorGUI.indentLevel--;
+                }
             }
             else
             {
@@ -83,6 +104,7 @@ namespace Photon.Voice.Unity.Editor
                 EditorGUI.indentLevel++;
                 EditorGUILayout.PropertyField(this.agcCompressionGainSp, new GUIContent("AGC Compression Gain"));
                 EditorGUILayout.PropertyField(this.agcTargetLevelSp, new GUIContent("AGC Target Level"));
+                EditorGUILayout.PropertyField(this.agcLimiterSp, new GUIContent("AGC Limiter", "Hard-limit the AGC output at the target level"));
                 EditorGUI.indentLevel--;
                 if (this.vadSp.boolValue && this.recorder.VoiceDetection)
                 {
@@ -90,9 +112,18 @@ namespace Photon.Voice.Unity.Editor
                 }
                 EditorGUILayout.PropertyField(this.highPassSp, new GUIContent("HighPass", "High Pass Filter"));
                 EditorGUILayout.PropertyField(this.noiseSuppressionSp, new GUIContent("NoiseSuppression", "Noise Suppression"));
-                EditorGUILayout.PropertyField(this.vadSp, new GUIContent("VAD", "Voice Activity Detection"));
                 if (this.noiseSuppressionSp.boolValue)
                 {
+                    EditorGUI.indentLevel++;
+                    EditorGUILayout.PropertyField(this.noiseSuppressionLevelSp, new GUIContent("NS Level", "Noise suppression aggressiveness"));
+                    EditorGUI.indentLevel--;
+                }
+                EditorGUILayout.PropertyField(this.vadSp, new GUIContent("VAD", "Voice Activity Detection"));
+                if (this.vadSp.boolValue)
+                {
+                    EditorGUI.indentLevel++;
+                    EditorGUILayout.PropertyField(this.vadLikelihoodSp, new GUIContent("VAD Likelihood", "How readily a frame is called speech. VeryLow = fewest false positives."));
+                    EditorGUI.indentLevel--;
                 }
             }
 

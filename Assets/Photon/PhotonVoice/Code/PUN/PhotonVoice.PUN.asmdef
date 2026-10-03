@@ -1,5 +1,6 @@
 {
     "name": "PhotonVoice.PUN",
+    "rootNamespace": "",
     "references": [
         "PhotonVoice",
         "PhotonUnityNetworking",
@@ -7,5 +8,14 @@
         "PhotonVoice.API"
     ],
     "includePlatforms": [],
-    "excludePlatforms": []
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "PHOTON_UNITY_NETWORKING"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

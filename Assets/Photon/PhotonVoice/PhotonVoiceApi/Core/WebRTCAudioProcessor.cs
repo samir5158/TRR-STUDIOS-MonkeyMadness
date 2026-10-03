@@ -16,14 +16,16 @@ namespace Photon.Voice
         int reverseStreamDelayMs;
         bool aec = false;
         bool aecHighPass = true;
-        bool aecm = false;
         bool highPass = false;
         bool ns = false;
+        NSLevel nsLevel = NSLevel.Moderate;
         bool agc = true;
         int agcCompressionGain = 9;
         int agcTargetLevel = 3;
+        bool agcLimiter = true;
         bool agc2 = false;
         bool vad;
+        VADLikelihood vadLikelihood = VADLikelihood.VeryLow;
 
         bool reverseStreamThreadRunning = false;
         Queue<short[]> reverseStreamQueue = new Queue<short[]>();
@@ -40,29 +42,16 @@ namespace Photon.Voice
                     aec = value;
                     InitReverseStream();
                     if (proc != IntPtr.Zero) setParam(Param.AEC, aec ? 1 : 0);
-                    aecm = aec ? false : aecm;
                 }
             }
         }
 
         public bool AECHighPass { set { if (aecHighPass != value) { aecHighPass = value; if (proc != IntPtr.Zero) setParam(Param.AEC_HIGH_PASS_FILTER, value ? 1 : 0); } } }
 
-        public bool AECMobile
-        {
-            set
-            {
-                if (aecm != value)
-                {
-                    aecm = value;
-                    InitReverseStream();
-                    if (proc != IntPtr.Zero) setParam(Param.AECM, aecm ? 1 : 0);
-                    aec = aecm ? false : aec;
-                }
-            }
-        }
-
         public bool HighPass { set { if (highPass != value) { highPass = value; if (proc != IntPtr.Zero) setParam(Param.HIGH_PASS_FILTER, value ? 1 : 0); } } }
         public bool NoiseSuppression { set { if (ns != value) { ns = value; if (proc != IntPtr.Zero) setParam(Param.NS, value ? 1 : 0); } } }
+        /// <summary>Noise suppression aggressiveness. Default: Moderate.</summary>
+        public NSLevel NoiseSuppressionLevel { set { if (nsLevel != value) { nsLevel = value; if (proc != IntPtr.Zero) setParam(Param.NS_LEVEL, (int)value); } } }
         public bool AGC { set { if (agc != value) { agc = value; if (proc != IntPtr.Zero) setParam(Param.AGC, value ? 1 : 0); } } }
         public int AGCCompressionGain
         {
@@ -104,8 +93,19 @@ namespace Photon.Voice
                 }
             }
         }
+        /// <summary>
+        /// Hard-limit the AGC output at the target level instead of only compressing
+        /// above it. Default: true.
+        /// </summary>
+        public bool AGCLimiter { set { if (agcLimiter != value) { agcLimiter = value; if (proc != IntPtr.Zero) setParam(Param.AGC_LIMITER, value ? 1 : 0); } } }
         public bool AGC2 { set { if (agc2 != value) { agc2 = value; if (proc != IntPtr.Zero) setParam(Param.AGC2, value ? 1 : 0); } } }
         public bool VAD { set { if (vad != value) { vad = value; if (proc != IntPtr.Zero) setParam(Param.VAD, value ? 1 : 0); } } }
+        /// <summary>
+        /// How readily the voice detector calls a frame speech. Default: VeryLow,
+        /// which reproduces the behaviour of the webrtc voice_detection submodule
+        /// this wrapper used before it was removed upstream.
+        /// </summary>
+        public VADLikelihood VoiceDetectionLikelihood { set { if (vadLikelihood != value) { vadLikelihood = value; if (proc != IntPtr.Zero) setParam(Param.VAD_LIKELIHOOD, (int)value); } } }
         public bool Bypass
         {
             set
@@ -372,6 +372,34 @@ namespace Photon.Voice
         const string lib_name = "webrtc-audio";
 #endif
 
+        // Returns a static string owned by the native library. Marshalled as
+        // IntPtr rather than string: a string return would make the runtime try
+        // to free a pointer it does not own.
+        [DllImport(lib_name, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern IntPtr webrtc_audio_version();
+
+        /// <summary>
+        /// Which WebRTC revision the native library was built from, e.g.
+        /// "WebRTC source stamp 2026-09-03T04:09:34, commit 9ab2b29b...".
+        /// Returns a diagnostic string instead of throwing if the native library
+        /// is missing or predates this export.
+        /// </summary>
+        public static string Version
+        {
+            get
+            {
+                try
+                {
+                    IntPtr p = webrtc_audio_version();
+                    return p == IntPtr.Zero ? "unavailable" : Marshal.PtrToStringAnsi(p);
+                }
+                catch (Exception e)
+                {
+                    return "unavailable (" + e.GetType().Name + ")";
+                }
+            }
+        }
+
         [DllImport(lib_name, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr webrtc_audio_processor_create(int samplingRate, int channels, int frameSize, int revSamplingRate, int revChannels);
         [DllImport(lib_name, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
@@ -416,7 +444,8 @@ namespace Photon.Voice
             AEC = 10,
             AEC_HIGH_PASS_FILTER = 11,
 
-            AECM = 20,
+            // 20 was AECM. webrtc deleted the mobile echo canceller; AEC3 covers
+            // mobile too. The native library rejects this id.
 
             HIGH_PASS_FILTER = 31,
 
@@ -430,10 +459,42 @@ namespace Photon.Voice
             AGC_LIMITER = 57,
 
             VAD = 61,
-            VAD_FRAME_SIZE_MS = 62,
+            // 62 was VAD_FRAME_SIZE_MS, never implemented natively. The detector
+            // runs on the 10 ms webrtc processing frame.
             VAD_LIKELIHOOD = 63,
 
             AGC2 = 71,
+
+            // Supported by the native library (webrtc CaptureLevelAdjustment,
+            // percent of unity gain) but deliberately not exposed as properties:
+            // pre-gain duplicates the MicAmplifier component, and post-gain sits
+            // after the AGC so raising it defeats the AGC limiter.
+            CAPTURE_PRE_GAIN_PERCENT = 81,
+            CAPTURE_POST_GAIN_PERCENT = 82,
+        }
+
+        /// <summary>
+        /// webrtc AudioProcessing::Config::NoiseSuppression::Level.
+        /// </summary>
+        public enum NSLevel
+        {
+            Low = 0,
+            Moderate = 1,
+            High = 2,
+            VeryHigh = 3,
+        }
+
+        /// <summary>
+        /// Likelihood that the voice detector reports a frame as speech. Maps onto
+        /// webrtc::Vad::Aggressiveness inversely: VeryLow is the most aggressive
+        /// setting and yields the fewest false positives.
+        /// </summary>
+        public enum VADLikelihood
+        {
+            High = 0,
+            Moderate = 1,
+            Low = 2,
+            VeryLow = 3,
         }
     }
 }

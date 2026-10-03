@@ -1,5 +1,51 @@
 Photon Voice 2 Change Log
 
+v2.64 (September 30, 2026)
+   PUN2: 2.56
+   RT/lib: v4.1.8.23
+   PhotonVoiceApi: revision 8385
+   Unity: 2021.3.45f2 or higher
+   UPDATED: Photon3Unity3D.dll, Photon Realtime (LoadBalancing), Photon Chat to v4.1.8.23
+   UPDATED: PUN to v2.56
+   NOTE: PhotonAppSettings.cs, AccountService.cs and PhotonEditorUtils.cs moved from PhotonRealtime/Code/Unity to the PhotonUnityNetworking folders (with PUN v2.56). When updating an existing project, delete the old PhotonRealtime/Code/Unity folder
+Core:
+   ADDED: PHOTON_VOICE_R4 symbol is defined if Photon Voice is installed
+   ADDED: Voice::ILogger::Log(LogLevel level, string msg) overload without formatting support
+   FIXED: Log() overload with formatting crashed if a dynamically created string contained formatting characters
+   CHANGED: UnityVoiceClient and LoadBalancingTransport use the new Realtime AppIdVideo / AppIdVoiceOrVideo settings handling (ClientAppType.VoiceOrVideo)
+Audio:
+   UPDATED: webrtc audio libraries for Windows, Android, iOS, OSX, VisionOS, WSA (UWP)
+   ADDED: webrtc audio Linux libraries (x86, x86_64)
+   UPDATED: WebRtcAudioDsp to the webrtc library API changes
+   BREAKING: WebRTCAudioProcessor.AECMobile property removed
+Unity:
+   ADDED: StreamTransportClient for a self-contained setup, with StreamMatchmakingSettings and status display in the inspector
+   ADDED: VoiceConnectionMatchmaking, to join a room based on expected custom room properties
+   ADDED: PermissionsRequester with cross-platform webcam and microphone permission handling, and VoiceConnectionPermissionWaiter supporting all VoiceConnection types
+   ADDED: AudioStreamSender (with status) and AudioStreamReceiver (separate audio sources for remote voices)
+Mac:
+   FIXED: native libraries are signed and notarized
+Android:
+   FIXED: arm64-v8a opus lib 16 KB alignment (GNU_RELRO segment)
+WebGL:
+   RENAMED: libopus.bc to libopus.a, as the ".bc" extension is no longer supported by recent Unity versions (".a" is supported starting from Unity 2021.2). When updating an existing project, delete the old PhotonVoiceLibs/WebGL/libopus.bc
+WSA (UWP):
+   REMOVED: ARM (32-bit) libraries
+Lumin:
+   REMOVED: Lumin libraries
+Fusion:
+   ADDED: Menu shortcut for setting up voice components on a NetworkObject
+   CHANGED: Fusion integration unsafe code is allowed for compatibility with Fusion
+   CHANGED: FusionVoiceClient uses the new Realtime AppIdVideo / AppIdVoiceOrVideo settings handling, except with Fusion 1 and Fusion 2.0.1 to 2.0.13 where AppIdVoice is still used
+PS4/PS5:
+   ADDED: support for audioSource.mute
+   FIXED: platform settings in the opus_egpv .meta files
+Nintendo Switch:
+   RENAMED: opus_egpv.a into libopus_egpv.a to match the file name in the release plugin package
+Nintendo Switch 2:
+   FIXED: the platform define in OpusWrapper.cs: SWITCH2 replaced with UNITY_SWITCH2
+   FIXED: platform settings in the opus_egpv .meta files
+
 v2.63 (February 23, 2026)
    PUN2: v2.52
    RT/lib: v4.1.8.17  (resending improvements)

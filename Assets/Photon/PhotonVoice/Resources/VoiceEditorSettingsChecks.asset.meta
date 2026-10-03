@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 78ab664cab5a105498bf11c426577e62
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 130518
+  packageName: Photon Voice 2
+  packageVersion: 2.64
+  assetPath: Assets/Photon/PhotonVoice/Resources/VoiceEditorSettingsChecks.asset
+  uploadId: 1007766

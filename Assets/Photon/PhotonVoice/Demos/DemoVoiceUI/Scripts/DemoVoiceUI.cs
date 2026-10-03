@@ -60,6 +60,9 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
         private Toggle noiseSuppressionToggle;
 
         [SerializeField]
+        private Slider nsLevelSlider;
+
+        [SerializeField]
         private Toggle agcToggle;
 
         [SerializeField]
@@ -69,7 +72,13 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
         private Slider agcTargetLevelSlider;
 
         [SerializeField]
+        private Toggle agcLimiterToggle;
+
+        [SerializeField]
         private Toggle vadToggle;
+
+        [SerializeField]
+        private Slider vadLikelihoodSlider;
 
         [SerializeField]
         private Toggle muteToggle;
@@ -129,6 +138,10 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
         private GameObject targetLevelGameObject;
         private Text compressionGainText;
         private Text targetLevelText;
+        private GameObject nsLevelGameObject;
+        private Text nsLevelText;
+        private GameObject vadLikelihoodGameObject;
+        private Text vadLikelihoodText;
 
         private GameObject aecOptionsGameObject;
 
@@ -154,6 +167,10 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
             this.compressionGainText = this.compressionGainGameObject.GetComponentInChildren<Text>();
             this.targetLevelGameObject = this.agcTargetLevelSlider.transform.parent.gameObject;
             this.targetLevelText = this.targetLevelGameObject.GetComponentInChildren<Text>();
+            this.nsLevelGameObject = this.nsLevelSlider.transform.parent.gameObject;
+            this.nsLevelText = this.nsLevelGameObject.GetComponentInChildren<Text>();
+            this.vadLikelihoodGameObject = this.vadLikelihoodSlider.transform.parent.gameObject;
+            this.vadLikelihoodText = this.vadLikelihoodGameObject.GetComponentInChildren<Text>();
             this.aecOptionsGameObject = this.aecHighPassToggle.transform.parent.gameObject;
             this.SetDefaults();
             this.InitUiCallbacks();
@@ -246,6 +263,7 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
         private void ToggleNoiseSuppression(bool isOn)
         {
             this.voiceAudioPreprocessor.NoiseSuppression = isOn;
+            this.nsLevelGameObject.SetActive(isOn);
         }
 
         private void ToggleAGC(bool isOn)
@@ -253,6 +271,7 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
             this.voiceAudioPreprocessor.AGC = isOn;
             this.compressionGainGameObject.SetActive(isOn);
             this.targetLevelGameObject.SetActive(isOn);
+            this.agcLimiterToggle.gameObject.SetActive(isOn);
 
             this.voiceConnection.Client.LocalPlayer.SetAGC(isOn, this.voiceAudioPreprocessor.AgcCompressionGain, this.voiceAudioPreprocessor.AgcTargetLevel);
         }
@@ -260,6 +279,7 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
         private void ToggleVAD(bool isOn)
         {
             this.voiceAudioPreprocessor.VAD = isOn;
+            this.vadLikelihoodGameObject.SetActive(isOn);
             this.voiceConnection.Client.LocalPlayer.SetWebRTCVAD(isOn);
         }
 
@@ -336,6 +356,27 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
             this.voiceAudioPreprocessor.AgcTargetLevel = (int)agcTargetLevel;
             this.targetLevelText.text = string.Concat("Target Level: ", agcTargetLevel);
             this.voiceConnection.Client.LocalPlayer.SetAGC(this.voiceAudioPreprocessor.AGC, this.voiceAudioPreprocessor.AgcCompressionGain, (int)agcTargetLevel);
+        }
+
+        private void ToggleAgcLimiter(bool isOn)
+        {
+            this.voiceAudioPreprocessor.AgcLimiter = isOn;
+        }
+
+        // The slider carries the enum ordinal; the label spells the value out,
+        // there is no point showing a bare 0..3 to the user.
+        private void OnNsLevelChanged(float nsLevel)
+        {
+            WebRTCAudioProcessor.NSLevel level = (WebRTCAudioProcessor.NSLevel)(int)nsLevel;
+            this.voiceAudioPreprocessor.NoiseSuppressionLevel = level;
+            this.nsLevelText.text = string.Concat("NS Level: ", level);
+        }
+
+        private void OnVadLikelihoodChanged(float vadLikelihood)
+        {
+            WebRTCAudioProcessor.VADLikelihood likelihood = (WebRTCAudioProcessor.VADLikelihood)(int)vadLikelihood;
+            this.voiceAudioPreprocessor.VadLikelihood = likelihood;
+            this.vadLikelihoodText.text = string.Concat("VAD Likelihood: ", likelihood);
         }
 
         private void OnReverseStreamDelayChanged(string newReverseStreamString)
@@ -480,6 +521,9 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
             this.noiseSuppressionToggle.SetSingleOnValueChangedCallback(this.ToggleNoiseSuppression);
             this.agcCompressionGainSlider.SetSingleOnValueChangedCallback(this.OnAgcCompressionGainChanged);
             this.agcTargetLevelSlider.SetSingleOnValueChangedCallback(this.OnAgcTargetLevelChanged);
+            this.agcLimiterToggle.SetSingleOnValueChangedCallback(this.ToggleAgcLimiter);
+            this.nsLevelSlider.SetSingleOnValueChangedCallback(this.OnNsLevelChanged);
+            this.vadLikelihoodSlider.SetSingleOnValueChangedCallback(this.OnVadLikelihoodChanged);
 
             this.localNicknameText.SetSingleOnEndEditCallback(this.UpdateSyncedNickname);
             this.roomNameInputField.SetSingleOnEndEditCallback(this.JoinOrCreateRoom);
@@ -509,7 +553,12 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
 
             //this.microphoneSelector.gameObject.SetActive(!this.streamAudioClipToggle.isOn && !this.audioToneToggle.isOn);
 
-            if (this.webRtcDspGameObject != null)
+            // The webrtc DSP section is hidden in WebGL builds, no webrtc-audio library is shipped for WebGL
+            bool showWebRtcDsp = this.webRtcDspGameObject != null;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            showWebRtcDsp = false;
+#endif
+            if (showWebRtcDsp)
             {
                 this.dspToggle.gameObject.SetActive(true);
                 this.dspToggle.SetValue(this.voiceAudioPreprocessor.enabled);
@@ -522,17 +571,29 @@ namespace Photon.Voice.Unity.Demos.DemoVoiceUI
                 this.reverseStreamDelayInputField.text = this.voiceAudioPreprocessor.ReverseStreamDelayMs.ToString();
                 this.aecOptionsGameObject.SetActive(this.voiceAudioPreprocessor.AEC);
                 this.noiseSuppressionToggle.isOn = this.voiceAudioPreprocessor.NoiseSuppression;
+                this.nsLevelSlider.SetValue((int)this.voiceAudioPreprocessor.NoiseSuppressionLevel);
+                this.nsLevelText.text = string.Concat("NS Level: ", this.voiceAudioPreprocessor.NoiseSuppressionLevel);
+                this.nsLevelGameObject.SetActive(this.voiceAudioPreprocessor.NoiseSuppression);
                 this.agcToggle.SetValue(this.voiceAudioPreprocessor.AGC);
                 this.agcCompressionGainSlider.SetValue(this.voiceAudioPreprocessor.AgcCompressionGain);
                 this.agcTargetLevelSlider.SetValue(this.voiceAudioPreprocessor.AgcTargetLevel);
                 this.compressionGainGameObject.SetActive(this.voiceAudioPreprocessor.AGC);
                 this.targetLevelGameObject.SetActive(this.voiceAudioPreprocessor.AGC);
+                this.agcLimiterToggle.SetValue(this.voiceAudioPreprocessor.AgcLimiter);
+                this.agcLimiterToggle.gameObject.SetActive(this.voiceAudioPreprocessor.AGC);
                 this.vadToggle.SetValue(this.voiceAudioPreprocessor.VAD);
+                this.vadLikelihoodSlider.SetValue((int)this.voiceAudioPreprocessor.VadLikelihood);
+                this.vadLikelihoodText.text = string.Concat("VAD Likelihood: ", this.voiceAudioPreprocessor.VadLikelihood);
+                this.vadLikelihoodGameObject.SetActive(this.voiceAudioPreprocessor.VAD);
                 this.highPassToggle.SetValue(this.voiceAudioPreprocessor.HighPass);
             }
             else
             {
                 this.dspToggle.gameObject.SetActive(false);
+                if (this.webRtcDspGameObject != null)
+                {
+                    this.webRtcDspGameObject.SetActive(false);
+                }
             }
         }
 

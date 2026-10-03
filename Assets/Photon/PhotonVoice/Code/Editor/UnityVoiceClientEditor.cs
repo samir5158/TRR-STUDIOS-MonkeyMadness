@@ -359,18 +359,34 @@
             if (this.connection.ShowSettings)
             {
                 EditorGUILayout.BeginHorizontal();
-                SerializedProperty sP = this.settingsSp.FindPropertyRelative("AppIdVoice");
-                EditorGUILayout.PropertyField(sP);
-                string appId = sP.stringValue;
+                EditorGUILayout.BeginVertical();
+                SerializedProperty sPVoice = this.settingsSp.FindPropertyRelative("AppIdVoice");
+                SerializedProperty sPVideo = this.settingsSp.FindPropertyRelative("AppIdVideo");
+                EditorGUILayout.PropertyField(sPVoice);
+                EditorGUILayout.PropertyField(sPVideo);
+                EditorGUILayout.EndVertical();
+
+                string voiceAppId = sPVoice.stringValue;
+                string videoAppId = sPVideo.stringValue;
+
+#if PHOTON_VOICE_VIDEO_ENABLE
+                string appId = string.IsNullOrEmpty(videoAppId) ? voiceAppId : videoAppId;
+#else
+                string appId = string.IsNullOrEmpty(voiceAppId) ? videoAppId : voiceAppId;
+#endif
                 string url = "https://dashboard.photonengine.com/en-US/PublicCloud";
                 if (!string.IsNullOrEmpty(appId))
                 {
                     url = string.Concat("https://dashboard.photonengine.com/en-US/App/Manage/", appId);
                 }
+                EditorGUILayout.BeginVertical();
+                GUILayout.FlexibleSpace();
                 if (GUILayout.Button("Dashboard", EditorStyles.miniButton, GUILayout.Width(90)))
                 {
                     Application.OpenURL(url);
                 }
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndVertical();
                 EditorGUILayout.EndHorizontal();
                 EditorGUILayout.PropertyField(this.settingsSp.FindPropertyRelative("AppVersion"));
                 EditorGUILayout.PropertyField(this.settingsSp.FindPropertyRelative("UseNameServer"), new GUIContent("Use Name Server", "Photon Cloud requires this checked.\nUncheck for Photon Server SDK (OnPremises)."));

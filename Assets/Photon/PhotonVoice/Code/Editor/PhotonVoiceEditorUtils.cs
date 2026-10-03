@@ -14,16 +14,26 @@ namespace Photon.Voice.Unity.Editor
     [InitializeOnLoad] // calls static constructor when script is recompiled
     public static class PhotonVoiceEditorUtils
     {
+        public const string PHOTON_VOICE_DEFINE_SYMBOL = "PHOTON_VOICE_R4";
+        public const string PHOTON_VIDEO_DISABLED_DEFINE_SYMBOL = "PHOTON_VOICE_VIDEO_DISABLED";
         public const string PHOTON_VIDEO_DEFINE_SYMBOL = "PHOTON_VOICE_VIDEO_ENABLE";
         public const string PHOTON_VIDEO_AVAILABLE_DEFINE_SYMBOL = "PHOTON_VOICE_VIDEO_AVAILABLE";
+        public const string PHOTON_VIDEO_FOLDER_GUID = "156c3c771fe98924892e2efd06aa060a";
 
         static PhotonVoiceEditorUtils()
         {
+            AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VOICE_DEFINE_SYMBOL);
             if (HasVideo)
             {
 #if !PHOTON_VOICE_VIDEO_AVAILABLE
                 Debug.Log("Photon Video is available");
-                Realtime.PhotonEditorUtils.AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_AVAILABLE_DEFINE_SYMBOL);
+                AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_AVAILABLE_DEFINE_SYMBOL);
+                AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_DEFINE_SYMBOL);
+                TriggerRecompile();
+#endif
+#if PHOTON_VOICE_VIDEO_AVAILABLE && !PHOTON_VOICE_VIDEO_ENABLE && !PHOTON_VOICE_VIDEO_DISABLED
+                Debug.Log("Automatically enabling Photon Video");
+                AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_DEFINE_SYMBOL);
                 TriggerRecompile();
 #endif
             }
@@ -64,7 +74,12 @@ namespace Photon.Voice.Unity.Editor
         {
             get
             {
-                return Directory.Exists("Assets/Photon/PhotonVoice/PhotonVoiceApi/Core/Video");
+                var videoPath = UnityEditor.AssetDatabase.GUIDToAssetPath(PHOTON_VIDEO_FOLDER_GUID);
+                if(videoPath != null && videoPath != "" && Directory.Exists(videoPath))
+                {
+                    return true;
+                }
+                return Directory.Exists("Assets/Photon/PhotonVideo");
             }
         }
 
@@ -109,19 +124,22 @@ namespace Photon.Voice.Unity.Editor
 #if PHOTON_VOICE_VIDEO_AVAILABLE
 
 #if PHOTON_VOICE_VIDEO_ENABLE
-        [MenuItem("Window/Photon Voice/Disable Video", false, 4)]
+        [MenuItem("Window/Photon Video/Disable Video", false, 4)]
         private static void DisableVideo()
         {
+            UnityEngine.Debug.Log("Disabling Photon Video (setting define '" + PHOTON_VIDEO_DISABLED_DEFINE_SYMBOL + "' and removing '" + PHOTON_VIDEO_DEFINE_SYMBOL  + "').");
+            AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_DISABLED_DEFINE_SYMBOL);
             RemoveScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_DEFINE_SYMBOL);
             TriggerRecompile();
         }
 #else
-        [MenuItem("Window/Photon Voice/Enable Video", false, 4)]
+        [MenuItem("Window/Photon Video/Enable Video", false, 4)]
         private static void EnableVideo()
         {
-            UnityEngine.Debug.Log("Enabling Photon Video (setting define '" + PHOTON_VIDEO_DEFINE_SYMBOL + "').");
+            UnityEngine.Debug.Log("Enabling Photon Video (setting define '" + PHOTON_VIDEO_DEFINE_SYMBOL + "' and removing '" + PHOTON_VIDEO_DISABLED_DEFINE_SYMBOL  + "').");
 
-            Realtime.PhotonEditorUtils.AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_DEFINE_SYMBOL);
+            AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_DEFINE_SYMBOL);
+            RemoveScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VIDEO_DISABLED_DEFINE_SYMBOL);
             TriggerRecompile();
         }
 #endif
@@ -185,6 +203,43 @@ namespace Photon.Voice.Unity.Editor
             #else
             PlayerSettings.SetScriptingDefineSymbolsForGroup(group, defines);
             #endif
+        }
+        
+        /// <summary>
+        /// Adds a given scripting define symbol to all build target groups
+        /// You can see all scripting define symbols ( not the internal ones, only the one for this project), in the PlayerSettings inspector
+        /// </summary>
+        /// <param name="defineSymbol">Define symbol.</param>
+        public static void AddScriptingDefineSymbolToAllBuildTargetGroups(string defineSymbol)
+        {
+            foreach (BuildTarget target in Enum.GetValues(typeof(BuildTarget)))
+            {
+                BuildTargetGroup group = BuildPipeline.GetBuildTargetGroup(target);
+
+                if (group == BuildTargetGroup.Unknown)
+                {
+                    continue;
+                }
+
+                var defineSymbols = GetScriptingDefines(group)
+                    .Split(';')
+                    .Select(d => d.Trim())
+                    .ToList();
+
+                if (!defineSymbols.Contains(defineSymbol))
+                {
+                    defineSymbols.Add(defineSymbol);
+
+                    try
+                    {
+                        SetScriptingDefines(group, string.Join(";", defineSymbols.ToArray()));
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.Log("Could not set Photon " + defineSymbol + " defines for build target: " + target + " group: " + group + " " + e);
+                    }
+                }
+            }
         }
 
         /// <summary>

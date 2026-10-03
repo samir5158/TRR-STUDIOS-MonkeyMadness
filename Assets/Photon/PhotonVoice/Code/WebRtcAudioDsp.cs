@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR || UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX || UNITY_IOS || UNITY_VISIONOS || UNITY_ANDROID || UNITY_WSA
+﻿#if UNITY_EDITOR || UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX || UNITY_IOS || UNITY_VISIONOS || UNITY_ANDROID || UNITY_WSA
 #define PLATFORM_IS_SUPPORTED
 #endif
 
@@ -18,8 +18,11 @@ namespace Photon.Voice.Unity
         [SerializeField]
         private bool aec = true;
 
+        // true matches webrtc's own EchoCanceller::enforce_high_pass_filtering
+        // default and the WebRTCAudioDSP component; AEC3 expects the low end to
+        // be filtered out.
         [SerializeField]
-        private bool aecHighPass;
+        private bool aecHighPass = true;
 
         [SerializeField]
         private bool agc = true;
@@ -43,6 +46,15 @@ namespace Photon.Voice.Unity
 
         [SerializeField]
         private bool noiseSuppression = true;
+
+        [SerializeField]
+        private WebRTCAudioProcessor.NSLevel noiseSuppressionLevel = WebRTCAudioProcessor.NSLevel.Moderate;
+
+        [SerializeField]
+        private bool agcLimiter = true;
+
+        [SerializeField]
+        private WebRTCAudioProcessor.VADLikelihood vadLikelihood = WebRTCAudioProcessor.VADLikelihood.VeryLow;
 
         [SerializeField]
         private int reverseStreamDelayMs = 120;
@@ -105,6 +117,51 @@ namespace Photon.Voice.Unity
                 if (value != this.reverseStreamDelayMs)
                 {
                     this.reverseStreamDelayMs = value;
+                    this.applyToProc();
+                }
+            }
+        }
+
+        /// <summary>Noise suppression aggressiveness. Default: Moderate.</summary>
+        public WebRTCAudioProcessor.NSLevel NoiseSuppressionLevel
+        {
+            get { return this.noiseSuppressionLevel; }
+            set
+            {
+                if (value != this.noiseSuppressionLevel)
+                {
+                    this.noiseSuppressionLevel = value;
+                    this.applyToProc();
+                }
+            }
+        }
+
+        /// <summary>Hard-limit the AGC output at the target level. Default: true.</summary>
+        public bool AgcLimiter
+        {
+            get { return this.agcLimiter; }
+            set
+            {
+                if (value != this.agcLimiter)
+                {
+                    this.agcLimiter = value;
+                    this.applyToProc();
+                }
+            }
+        }
+
+        /// <summary>
+        /// How readily the voice detector calls a frame speech.
+        /// VeryLow (default) yields the fewest false positives.
+        /// </summary>
+        public WebRTCAudioProcessor.VADLikelihood VadLikelihood
+        {
+            get { return this.vadLikelihood; }
+            set
+            {
+                if (value != this.vadLikelihood)
+                {
+                    this.vadLikelihood = value;
                     this.applyToProc();
                 }
             }
@@ -325,7 +382,7 @@ namespace Photon.Voice.Unity
 
         private void StartProc(LocalVoiceAudioShort v)
         {
-            this.Logger.Log(LogLevel.Info, "Start");
+            this.Logger.Log(LogLevel.Info, "Start, native lib: {0}", WebRTCAudioProcessor.Version);
             this.reverseChannels = channelsMap[AudioSettings.speakerMode];
             this.outputSampleRate = AudioSettings.outputSampleRate;
             this.proc = new WebRTCAudioProcessor(this.Logger, v.Info.FrameSize, v.Info.SamplingRate, v.Info.Channels, this.outputSampleRate, this.reverseChannels);
@@ -388,18 +445,22 @@ namespace Photon.Voice.Unity
         {
             if (proc != null)
             {
+                // webrtc removed AECM; AEC3 covers mobile too, so there is no
+                // longer a separate mobile echo canceller to switch to.
                 proc.AEC = this.aec;
-                proc.AECMobile = this.aec && Application.isMobilePlatform;
                 setOutputListener(this.aec);
                 proc.AECStreamDelayMs = this.reverseStreamDelayMs;
                 proc.AECHighPass = this.aecHighPass;
                 proc.HighPass = this.highPass;
                 proc.NoiseSuppression = this.noiseSuppression;
+                proc.NoiseSuppressionLevel = this.noiseSuppressionLevel;
                 proc.AGC = this.agc;
                 proc.AGCCompressionGain = this.agcCompressionGain;
                 proc.AGCTargetLevel = this.agcTargetLevel;
+                proc.AGCLimiter = this.agcLimiter;
                 //proc.AGC2 = AGC2;
                 proc.VAD = VAD;
+                proc.VoiceDetectionLikelihood = this.vadLikelihood;
                 proc.Bypass = Bypass;
             }
         }

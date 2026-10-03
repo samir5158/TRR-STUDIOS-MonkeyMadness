@@ -2,6 +2,7 @@
 using Photon.Voice.Unity.Editor;
 #endif
 using Photon.Realtime;
+using Photon.Voice.Unity.Editor;
 using System;
 using UnityEditor;
 
@@ -29,7 +30,7 @@ namespace Photon.Voice.Unity.FMOD.Editor
             if (HasFMOD)
             {
                 UnityEngine.Debug.Log("FMOD Unity plugin is now available: we can use Photon Voice FMOD integration");
-                PhotonEditorUtils.AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VOICE_FMOD_AVAILABLE_DEFINE_SYMBOL);
+                PhotonVoiceEditorUtils.AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VOICE_FMOD_AVAILABLE_DEFINE_SYMBOL);
                 TriggerRecompile();
             }
 #endif
@@ -64,7 +65,7 @@ namespace Photon.Voice.Unity.FMOD.Editor
         [MenuItem("Window/Photon Voice/Enable FMOD Integration", false, 4)]
         private static void AddFMOD()
         {
-            PhotonEditorUtils.AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VOICE_FMOD_DEFINE_SYMBOL);
+            PhotonVoiceEditorUtils.AddScriptingDefineSymbolToAllBuildTargetGroups(PHOTON_VOICE_FMOD_DEFINE_SYMBOL);
             ToggleUnityAudio(true);
         }
 

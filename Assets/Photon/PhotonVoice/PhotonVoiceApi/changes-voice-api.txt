@@ -1,5 +1,25 @@
 Photon Voice API Change Log
 
+v2.64 (September 30, 2026)
+Core:
+   ADDED: Voice::ILogger::Log(LogLevel level, string msg) overload without formatting support
+   FIXED: Log() overload with formatting crashed if a dynamically created string contained formatting characters
+   CHANGED: LoadBalancingTransport uses ClientAppType.VoiceOrVideo (new Realtime AppIdVideo / AppIdVoiceOrVideo settings handling)
+   UPDATED: WebRTCAudioProcessor to the new webrtc library API
+Linux:
+   FIXED: Platform.CreateDefaultVideoRecorder() did not compile: platforms for VideoRecorderUnity() are now explicitly specified
+iOS and Mac:
+   ADDED: texture video source: VideoEncoderUnityTextureInput, VideoRecorderUnityTextureInput
+iOS:
+   CHANGED: camera capture and encoder decoupled: VideoEncoderUnityTexture renamed to VideoCaptureUnityTexture, VideoEncoderLayer renamed to VideoCaptureLayer
+Mac:
+   FIXED: crash when a frame was encoded before the local voice was created: the frame is now skipped
+Android:
+   ADDED: AndroidVideoRecorderTextureInput based on AndroidTextureVideoEncoder
+   FIXED: wrong time unit passed to native texture encoding when using Vulkan
+WebGL:
+   FIXED: the first keyframe is now dropped for all codecs (not only AV1): on macOS, decoding failed to start with EncodingError when a remote video started
+
 v2.63 (February 23, 2026)
 Android:
    ADDED: Vulkan support for video display in Unity texture (AndroidTextureView)

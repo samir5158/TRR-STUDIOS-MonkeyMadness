@@ -267,7 +267,7 @@ namespace Photon.Voice.Unity
                 this.Logger.Log(LogLevel.Error, "Settings are null");
                 return false;
             }
-            if (string.IsNullOrEmpty(this.Settings.AppIdVoice) && string.IsNullOrEmpty(this.Settings.Server))
+            if (string.IsNullOrEmpty(this.Settings.AppIdVoiceOrVideo) && string.IsNullOrEmpty(this.Settings.Server))
             {
                 this.Logger.Log(LogLevel.Error, "Provide an AppId or a Server address in Settings to be able to connect");
                 return false;

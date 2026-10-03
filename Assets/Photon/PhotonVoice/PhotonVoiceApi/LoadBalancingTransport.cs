@@ -76,7 +76,7 @@ namespace Photon.Voice
             {
                 logger = new LBCLogger(this);
             }
-            this.ClientType = ClientAppType.Voice;
+            this.ClientType = ClientAppType.VoiceOrVideo;
             this.cppCompatibilityMode = cppCompatibilityMode;
             base.EventReceived += onEventActionVoiceClient;
             base.StateChanged += onStateChangeVoiceClient;
@@ -288,6 +288,18 @@ namespace Photon.Voice
                     if (lbt.LoadBalancingPeer.DebugOut == DebugLevel.WARNING) return LogLevel.Warning;
                     if (lbt.LoadBalancingPeer.DebugOut <= DebugLevel.ERROR) return LogLevel.Error;
                     return LogLevel.Trace;
+                }
+            }
+
+            public void Log(LogLevel level, string msg)
+            {
+                if (this.Level >= level)
+                {
+                    DebugLevel debugOut = DebugLevel.ALL;
+                    if (level == LogLevel.Info) debugOut = DebugLevel.INFO;
+                    else if (level == LogLevel.Warning) debugOut = DebugLevel.WARNING;
+                    else if (level == LogLevel.Error) debugOut = DebugLevel.ERROR;
+                    lbt.DebugReturn(debugOut, msg);
                 }
             }
 

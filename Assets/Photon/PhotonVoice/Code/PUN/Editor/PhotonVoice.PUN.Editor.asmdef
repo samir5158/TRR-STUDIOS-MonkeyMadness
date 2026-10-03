@@ -1,5 +1,6 @@
 {
     "name": "PhotonVoice.PUN.Editor",
+    "rootNamespace": "",
     "references": [
         "PhotonVoice.PUN",
         "PhotonVoice.Editor",
@@ -10,5 +11,14 @@
     "includePlatforms": [
         "Editor"
     ],
-    "excludePlatforms": []
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "PHOTON_UNITY_NETWORKING"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

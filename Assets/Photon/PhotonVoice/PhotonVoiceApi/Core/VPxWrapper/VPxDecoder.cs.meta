@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 874ec69d4cb087244a3a3c518598b631
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 130518
+  packageName: Photon Voice 2
+  packageVersion: 2.64
+  assetPath: Assets/Photon/PhotonVoice/PhotonVoiceApi/Core/VPxWrapper/VPxDecoder.cs
+  uploadId: 1007766

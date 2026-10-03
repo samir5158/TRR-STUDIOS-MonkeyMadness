@@ -155,7 +155,6 @@ namespace Photon.Voice
                 case Codec.VideoH264:
                     //return new FFmpegCodec.Decoder(logger);
                     return new MacOS.VideoDecoder(logger, info);
-                    break;
 #endif
                 default:
                     throw new UnsupportedCodecException("Platform.CreateDefaultVideoDecoder", info.Codec);
@@ -186,7 +185,7 @@ namespace Photon.Voice
 #elif UNITY_WEBGL && UNITY_2021_2_OR_NEWER && !UNITY_EDITOR // requires ES6
             return new Unity.WebCodecsCameraRecorderUnityTexture(logger, info, camDevice.IDString, onReady);
 #else // multi-platform VideoRecorderUnity
-#if UNITY_5_3_OR_NEWER // #if UNITY
+#if UNITY_EDITOR || UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX // supported by VideoRecorderUnity
             var ve = CreateDefaultVideoEncoder(logger, info);
             return new Unity.VideoRecorderUnity(ve, null, camDevice.IDString, info.Width, info.Height, info.FPS, onReady);
 #endif
